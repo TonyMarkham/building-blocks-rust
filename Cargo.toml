@@ -1,0 +1,52 @@
+[workspace]
+resolver        = "3"
+members         = ["example/file-open",
+    "example/hello-world"
+]
+exclude         = []
+default-members = []
+package         = {
+    authors       = ["TonyMarkham"],
+    categories    = [],
+    description   = "Rust Examples",
+    documentation = "Rust Examples",
+    edition       = "2024",
+    exclude       = [],
+    homepage      = "https://github.com/TonyMarkham/building-blocks-rust",
+    include       = [],
+    keywords      = [],
+    license       = "MIT",
+    license-file  = "",
+    publish       = false,
+    readme        = "",
+    repository    = "https://github.com/TonyMarkham/building-blocks-rust",
+    rust-version  = "1.100.0",
+    version       = "0.1.0",
+}
+dependencies    = {
+    clap           = { version = "4.6.8" },
+    error-location = { version = "0.1.0" },
+    thiserror      = { version = "2.0.21" },
+    tokio          = { version = "1.54.1" },
+}
+lints           = {
+    cargo  = {
+        unused_dependencies             = "deny",
+        unused_workspace_package_fields = "allow"
+    },
+    clippy = {
+        enum_glob_use = "deny",
+        expect_used   = "deny",
+        panic         = "deny",
+        unwrap_used   = "deny",
+    },
+    rust   = {
+        unused_must_use  = "deny"
+    }
+}
+metadata        = {
+}
+
+# ---------------------------------------------------------------------------- #
+
+[profile]
