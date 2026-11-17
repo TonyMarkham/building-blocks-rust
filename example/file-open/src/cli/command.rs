@@ -11,4 +11,7 @@ pub(crate) enum Command {
 
     /// Print the file line by line, with line numbers.
     ReadLines { path: PathBuf },
+
+    /// Show the size and colour format of a PNG image.
+    PngInfo { path: PathBuf },
 }

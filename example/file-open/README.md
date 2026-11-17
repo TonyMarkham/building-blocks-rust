@@ -1,6 +1,6 @@
 # file-open
 
-A small CLI that opens and reads text files asynchronously with [Tokio](https://tokio.rs),
+A small CLI that opens and reads text and binary (PNG) files asynchronously with [Tokio](https://tokio.rs),
 using [clap](https://docs.rs/clap) for argument parsing and
 [thiserror](https://docs.rs/thiserror) + [error-location](https://docs.rs/error-location)
 for errors that report *where* they were triggered.
@@ -20,6 +20,7 @@ Commands:
   open        Open a file and report whether it succeeded
   read-text   Print the whole file
   read-lines  Print the file line by line, with line numbers
+  png-info    Show the size and colour format of a PNG image
   help        Print this message or the help of the given subcommand(s)
 ```
 
@@ -27,7 +28,7 @@ Commands:
 
 > ### Command
 > ```bash
-> cargo run -p file-open -- open > example/file-open/Cargo.toml
+> cargo run -p file-open -- open example/file-open/Cargo.toml
 > ```
 >
 >> #### Result:
@@ -37,7 +38,7 @@ Commands:
 
 > ### Command
 > ```bash
-> cargo run -p file-open -- read-lines > example/file-open/Cargo.toml
+> cargo run -p file-open -- read-lines example/file-open/Cargo.toml
 > ```
 >
 >> #### Result
@@ -54,21 +55,44 @@ Commands:
 >
 >> #### Result
 >> ```text
->> file not found: nope.txt > [example/file-open/src/main.rs:44:16]
+>> file not found: nope.txt [example/file-open/src/main.rs:47:16]
+>> ```
+
+> ### Command
+> ```bash
+> cargo run -p file-open -- png-info example/file-open/assets/rgba-16bit-gradient.png
+> ```
+>
+>> #### Result
+>> ```text
+>> 100 x 10 px, 16-bit RGBA
+>> ```
+
+> ### Command
+> ```bash
+> cargo run -p file-open -- png-info example/file-open/assets/not-a-png.png
+> ```
+>
+>> #### Result
+>> ```text
+>> not a PNG file: example/file-open/assets/not-a-png.png [example/file-open/src/main.rs:69:43]
 >> ```
 
 On error, the message is printed to stderr and the process exits with code `1`.
 
 ## Layout
 
-| File                  | Purpose                                                                 |
-|-----------------------|-------------------------------------------------------------------------|
-| `src/main.rs`         | Entry point. Parses the CLI, dispatches each command to a handler fn.   |
-| `src/cli/mod.rs`      | `Cli` — the top-level clap parser.                                      |
-| `src/cli/command.rs`  | `Command` — the subcommands (`open`, `read-text`, `read-lines`).        |
-| `src/file.rs`         | Async file operations: `open`, `read_text`, `read_lines`.               |
-| `src/error/mod.rs`    | `Error` enum and `Error::from_io`, which maps `io::ErrorKind` to variants. |
-| `src/error/result.rs` | `Result<T>` alias, re-exported as `FileResult<T>`.                      |
+| File                   | Purpose                                                                    |
+|------------------------|----------------------------------------------------------------------------|
+| `src/main.rs`          | Entry point. Parses the CLI, dispatches each command to a handler fn.      |
+| `src/cli/mod.rs`       | `Cli` — the top-level clap parser.                                         |
+| `src/cli/command.rs`   | `Command` — the subcommands (`open`, `read-text`, `read-lines`, `png-info`). |
+| `src/file/mod.rs`      | Async `open` and `read_prefix` (read the first *n* bytes of a file).       |
+| `src/file/text.rs`     | Async `read_text` and `read_lines`.                                        |
+| `src/file/png/info.rs` | `parse` — pure PNG header parser (no I/O), and the `Info` it returns.      |
+| `src/error/mod.rs`     | `Error` enum and `Error::from_io`, which maps `io::ErrorKind` to variants. |
+| `src/error/result.rs`  | `Result<T>` alias, re-exported as `FileResult<T>`.                         |
+| `assets/`              | Sample PNGs for trying `png-info` (see [Assets](#assets)).                 |
 
 ## Errors
 
@@ -80,7 +104,28 @@ On error, the message is printed to stderr and the process exits with code `1`.
 | `PermissionDenied` | `PermissionDenied` | No                          |
 | anything else      | `Io`               | Yes, as `#[source]`         |
 
+`Png` is not an I/O error: it's raised by `png-info` when the bytes read
+don't start with a valid PNG signature and `IHDR` chunk (including files too
+short to contain one).
+
 Every variant carries the file `path` and an `ErrorLocation` (`[file:line:column]`).
+
+## Assets
+
+`assets/` holds small generated PNGs — one per PNG colour type — plus two
+invalid files for the error path.
+
+| File                       | Contents                                 | `png-info` output                       |
+|----------------------------|------------------------------------------|-----------------------------------------|
+| `gray-1bit-checker.png`    | 1-bit checkerboard                       | `32 x 32 px, 1-bit grayscale`           |
+| `gray-8bit-gradient.png`   | black → white gradient                   | `64 x 32 px, 8-bit grayscale`           |
+| `gray-alpha-8bit-fade.png` | radial fade to transparent               | `48 x 48 px, 8-bit grayscale + alpha`   |
+| `indexed-8bit-stripes.png` | 4-colour palette stripes                 | `40 x 20 px, 8-bit indexed (palette)`   |
+| `rgb-8bit-gradient.png`    | red / green / blue gradient              | `64 x 64 px, 8-bit RGB`                 |
+| `rgba-8bit-fade.png`       | blue fading to transparent               | `32 x 32 px, 8-bit RGBA`                |
+| `rgba-16bit-gradient.png`  | 16-bit-per-channel gradient              | `100 x 10 px, 16-bit RGBA`              |
+| `not-a-png.png`            | plain text with a `.png` extension       | `not a PNG file: ...`                   |
+| `truncated.png`            | valid signature, cut off after 20 bytes  | `not a PNG file: ...`                   |
 
 ## Design notes
 

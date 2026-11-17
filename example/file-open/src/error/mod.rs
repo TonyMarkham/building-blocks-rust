@@ -33,6 +33,12 @@ pub enum Error {
         path: PathBuf,
         location: ErrorLocation,
     },
+
+    #[error("not a PNG file: {} {location}", path.display())]
+    Png {
+        path: PathBuf,
+        location: ErrorLocation,
+    },
 }
 
 impl Error {

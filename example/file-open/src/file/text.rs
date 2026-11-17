@@ -1,20 +1,8 @@
-use crate::{FileError, FileResult};
+use crate::{file::open_at, FileError, FileResult};
 
+use std::{panic::Location,  path::Path};
 use error_location::ErrorLocation;
-use std::{
-    panic::Location,
-    path::{Path, PathBuf},
-};
-use tokio::{
-    fs::File,
-    io::{AsyncBufReadExt, AsyncReadExt, BufReader},
-};
-
-#[track_caller]
-pub(crate) fn open(path: impl AsRef<Path>) -> impl Future<Output = FileResult<File>> {
-    let location = ErrorLocation::from(Location::caller());
-    open_at(path.as_ref().to_path_buf(), location)
-}
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
 
 #[track_caller]
 pub(crate) fn read_text(path: impl AsRef<Path>) -> impl Future<Output = FileResult<String>> {
@@ -45,12 +33,5 @@ pub(crate) fn read_lines(path: impl AsRef<Path>) -> impl Future<Output = FileRes
                 Err(source) => return Err(FileError::from_io(source, path, location)),
             }
         }
-    }
-}
-
-async fn open_at(path: PathBuf, location: ErrorLocation) -> FileResult<File> {
-    match File::open(&path).await {
-        Ok(file) => Ok(file),
-        Err(source) => Err(FileError::from_io(source, path, location)),
     }
 }
